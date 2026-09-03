@@ -54,7 +54,11 @@ function resolveEnv(name: string): string {
 function createSupabase(): SupabaseClient {
   const url = resolveEnv('NEXT_PUBLIC_SUPABASE_URL');
   const anon = resolveEnv('NEXT_PUBLIC_SUPABASE_ANON_KEY');
-  return createClient(url, anon);
+  // Use the service role key when available so dataset ingestion bypasses RLS.
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY ?? anon;
+  return createClient(url, key, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
 }
 
 interface ProductMetadata {
@@ -83,13 +87,6 @@ async function readJson<T>(p: string, fallback: T): Promise<T> {
   } catch {
     return fallback;
   }
-}
-
-async function listProductDirs(dataDir: string): Promise<string[]> {
-  const entries = await readdir(dataDir, { withFileTypes: true });
-  return entries
-    .filter((e) => e.isDirectory())
-    .map((e) => path.join(dataDir, e.name));
 }
 
 async function findImages(dir: string): Promise<string[]> {
@@ -136,13 +133,13 @@ async function productExists(client: SupabaseClient, name: string, brand: string
 async function processProduct(
   client: SupabaseClient,
   dir: string,
-  opts: { dry: boolean }
+  opts: { dry: boolean; brandHint?: string | null }
 ): Promise<string | null> {
   const base = path.basename(dir);
   const meta = await readJson<ProductMetadata>(path.join(dir, 'metadata.json'), {});
 
   const name = meta.name ?? base.replace(/[-_]/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
-  const brand = meta.brand ?? null;
+  const brand = meta.brand ?? opts.brandHint ?? null;
   const category = meta.category ?? 'other';
   const bucket = meta.package_weight_bucket ?? '<=200';
 
@@ -246,31 +243,56 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 
+  if (!dry && !process.env.DATASET_USER_ID) {
+    console.error('DATASET_USER_ID is required (products.uploaded_by is NOT NULL). Set it in .env.local.');
+    process.exit(1);
+  }
+
   const client = createSupabase();
   const state = await readJson<ProcessedState>(path.join(dataDir, STATE_FILE), { ids: [] });
   const failed: string[] = [];
 
-  const dirs = await listProductDirs(dataDir);
-  console.log(`Found ${dirs.length} product folder(s) in ${dataDir}`);
+  // Resolve product dirs, supporting both layouts:
+  //  1) flat:   data/<product>/
+  //  2) nested: data/<brand>/<product>/
+  interface Job { dir: string; brandHint: string | null }
+  const topLevel = await readdir(dataDir, { withFileTypes: true });
+  const topDirs = topLevel.filter((e) => e.isDirectory()).map((e) => path.join(dataDir, e.name));
+  const jobs: Job[] = [];
+  for (const d of topDirs) {
+    const children = await readdir(d, { withFileTypes: true });
+    const hasImages = children.some((c) => c.isFile() && new Set(['.png', '.jpg', '.jpeg', '.webp', '.gif', '.bmp']).has(path.extname(c.name).toLowerCase()));
+    if (hasImages) {
+      // flat layout: d IS a product
+      jobs.push({ dir: d, brandHint: null });
+    } else {
+      // nested layout: d is a brand, products are its subfolders
+      for (const c of children.filter((x) => x.isDirectory())) {
+        jobs.push({ dir: path.join(d, c.name), brandHint: path.basename(d) });
+      }
+    }
+  }
 
-  for (const dir of dirs) {
-    const base = path.basename(dir);
+  console.log(`Found ${jobs.length} product folder(s) in ${dataDir}`);
+
+  for (const job of jobs) {
+    const base = path.basename(job.dir);
     // Resumable: skip already-processed ids (if product id persisted).
-    if (state.ids.includes(dir)) {
+    if (state.ids.includes(job.dir)) {
       console.log(`already processed, skipping "${base}"`);
       continue;
     }
     try {
-      const id = await processProduct(client, dir, { dry });
+      const id = await processProduct(client, job.dir, { dry, brandHint: job.brandHint });
       if (id) {
-        state.ids.push(dir);
+        state.ids.push(job.dir);
         await writeFile(path.join(dataDir, STATE_FILE), JSON.stringify(state, null, 2));
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       console.error(`  ✗ error on "${base}": ${msg}`);
       failed.push(base);
-      await writeFile(path.join(dataDir, FAILURES_FILE), `${JSON.stringify({ ts: new Date().toISOString(), dir: base, error: msg })}\n`, { flag: 'a' });
+      await writeFile(path.join(dataDir, FAILURES_FILE), `${JSON.stringify({ ts: new Date().toISOString(), dir: job.dir, error: msg })}\n`, { flag: 'a' });
     }
     // Respect Gemini free-tier rate limit between pipeline runs.
     await sleep(GEMINI_RATE_LIMIT_MS);

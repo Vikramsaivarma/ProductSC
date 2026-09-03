@@ -1,3 +1,5 @@
 ﻿.env.local
 *.pem
 .env*.local
+*.zip
+/data/

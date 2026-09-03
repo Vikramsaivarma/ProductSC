@@ -20,7 +20,7 @@ CREATE TABLE products (
   name TEXT NOT NULL,
   brand TEXT,
   category TEXT CHECK (category IN ('food','cosmetic','personal_care','electronics','household','other')) DEFAULT 'other',
-  package_weight_bucket TEXT CHECK (package_weight_bucket IN ('<=200','200-500','>500')) DEFAULT 'other',
+  package_weight_bucket TEXT CHECK (package_weight_bucket IN ('<=200','200-500','>500')) DEFAULT '<=200',
   image_urls TEXT[] DEFAULT '{}',
   uploaded_by UUID REFERENCES profiles(id) NOT NULL,
   source TEXT CHECK (source IN ('manual_upload','dataset_import')) DEFAULT 'manual_upload',
