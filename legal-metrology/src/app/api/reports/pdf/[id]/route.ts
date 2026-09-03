@@ -8,6 +8,8 @@ interface RouteParams {
   params: Promise<{ id: string }>;
 }
 
+export const maxDuration = 30;
+
 export async function GET(_request: Request, { params }: RouteParams) {
   try {
     const supabase = await createClient();

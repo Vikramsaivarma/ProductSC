@@ -11,6 +11,8 @@ const AnalyzeBodySchema = z.object({
   imageUrls: z.array(z.string().url()).min(1).max(6),
 });
 
+export const maxDuration = 60;
+
 export async function POST(request: Request) {
   try {
     const supabase = await createClient();
