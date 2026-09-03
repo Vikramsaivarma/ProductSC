@@ -1,0 +1,144 @@
+[
+  {
+    "id": "LM-01",
+    "rule_code": "LM-01",
+    "title": "Manufacturer/Packer/Importer Name & Address",
+    "description": "Name and complete address of the manufacturer, or packer, or importer must be declared on the package.",
+    "legal_reference": "Rule 6(1)(a)",
+    "field": "manufacturer_name",
+    "severity": "critical",
+    "detection_hints": ["Manufactured by", "Packed by", "Imported by", "Marketed by"],
+    "scoring": { "critical": 15, "major": 8, "minor": 3 }
+  },
+  {
+    "id": "LM-02",
+    "rule_code": "LM-02",
+    "title": "Common/Generic Name of Commodity",
+    "description": "Common or generic name of the commodity must be declared.",
+    "legal_reference": "Rule 6(1)(b)",
+    "field": "common_or_generic_name",
+    "severity": "major",
+    "detection_hints": ["Product name", "Commodity name", "Category"],
+    "scoring": { "critical": 15, "major": 8, "minor": 3 }
+  },
+  {
+    "id": "LM-03",
+    "rule_code": "LM-03",
+    "title": "Net Quantity in Standard SI Units",
+    "description": "Net quantity in weight (g/kg), volume (ml/L), or number must be declared in standard SI units.",
+    "legal_reference": "Rule 8",
+    "field": "net_quantity",
+    "severity": "critical",
+    "detection_hints": ["Net Wt", "Net Qty", "Net Content", "g", "kg", "ml", "L"],
+    "scoring": { "critical": 15, "major": 8, "minor": 3 }
+  },
+  {
+    "id": "LM-04",
+    "rule_code": "LM-04",
+    "title": "MRP with inclusive of all taxes",
+    "description": "Maximum Retail Price (MRP) in rupees must be declared with the words 'inclusive of all taxes'.",
+    "legal_reference": "Rule 6(1)(e)",
+    "field": "mrp",
+    "severity": "critical",
+    "detection_hints": ["MRP", "Maximum Retail Price", "Rs.", "₹", "inclusive of all taxes"],
+    "scoring": { "critical": 15, "major": 8, "minor": 3 }
+  },
+  {
+    "id": "LM-05",
+    "rule_code": "LM-05",
+    "title": "Month & Year of Manufacture/Packing/Import",
+    "description": "Month and year of manufacture or packing or import must be declared.",
+    "legal_reference": "Rule 6(1)(c)",
+    "field": "mfg_date",
+    "severity": "critical",
+    "detection_hints": ["Mfg Date", "MFD", "MFG", "Packed on", "Manufactured on"],
+    "scoring": { "critical": 15, "major": 8, "minor": 3 }
+  },
+  {
+    "id": "LM-06",
+    "rule_code": "LM-06",
+    "title": "Consumer Care Details",
+    "description": "Name and address of the person to whom complaints may be communicated, including phone number or email.",
+    "legal_reference": "Rule 6(1)(d)",
+    "field": "consumer_care",
+    "severity": "major",
+    "detection_hints": ["Consumer Care", "Customer Care", "Contact", "Helpline", "Phone", "Email"],
+    "scoring": { "critical": 15, "major": 8, "minor": 3 }
+  },
+  {
+    "id": "LM-07",
+    "rule_code": "LM-07",
+    "title": "Country of Origin (Imported Goods)",
+    "description": "For imported goods, country of origin must be declared.",
+    "legal_reference": "Rule 6(10)",
+    "field": "country_of_origin",
+    "severity": "critical",
+    "detection_hints": ["Country of Origin", "Made in", "Product of", "Imported from"],
+    "scoring": { "critical": 15, "major": 8, "minor": 3 },
+    "conditional": true
+  },
+  {
+    "id": "LM-08",
+    "rule_code": "LM-08",
+    "title": "Font Size per Package Tier",
+    "description": "Minimum font height for net quantity declaration: <=200g/ml: 1mm, 200-500g/ml: 2mm, >500g/ml: 4mm.",
+    "legal_reference": "Rule 9",
+    "field": "font_size",
+    "severity": "major",
+    "detection_hints": ["Font height", "Character size", "Text size"],
+    "scoring": { "critical": 15, "major": 8, "minor": 3 },
+    "config": {
+      "tiers": {
+        "<=200": { "min_height_mm": 1 },
+        "200-500": { "min_height_mm": 2 },
+        ">500": { "min_height_mm": 4 }
+      }
+    }
+  },
+  {
+    "id": "LM-09",
+    "rule_code": "LM-09",
+    "title": "MRP Integrity (No Overwriting/Sticker)",
+    "description": "MRP shall not be overprinted, overwritten, or covered by a sticker. Must be clearly legible and permanent.",
+    "legal_reference": "Rule 6(3)",
+    "field": "mrp_integrity",
+    "severity": "critical",
+    "detection_hints": ["Sticker", "Overprint", "Tampered", "Different ink"],
+    "scoring": { "critical": 15, "major": 8, "minor": 3 }
+  },
+  {
+    "id": "LM-10",
+    "rule_code": "LM-10",
+    "title": "Unit Sale Price (Food >100g/ml)",
+    "description": "For food commodities with net quantity exceeding 100g/ml, unit sale price per unit weight/volume must be declared.",
+    "legal_reference": "Rule 6",
+    "field": "unit_sale_price",
+    "severity": "major",
+    "detection_hints": ["Unit Price", "Rs./kg", "Rs./100g", "Per unit"],
+    "scoring": { "critical": 15, "major": 8, "minor": 3 },
+    "conditional": true,
+    "condition": "food_category_and_over_100g"
+  },
+  {
+    "id": "LM-11",
+    "rule_code": "LM-11",
+    "title": "No Misleading Terms Without Qualifiers",
+    "description": "No misleading terms or claims that deceive consumers about quantity, quality, or nature of the product.",
+    "legal_reference": "Rule 6",
+    "field": "misleading_terms",
+    "severity": "minor",
+    "detection_hints": ["100%", "Pure", "Natural", "FAMILY PACK", "JUMBO", "VALUE PACK"],
+    "scoring": { "critical": 15, "major": 8, "minor": 3 }
+  },
+  {
+    "id": "LM-12",
+    "rule_code": "LM-12",
+    "title": "Declarations on Principal Display Panel",
+    "description": "Mandatory declarations must appear on the Principal Display Panel (visible at point of sale).",
+    "legal_reference": "Rule 5",
+    "field": "declarations_on_pdp",
+    "severity": "minor",
+    "detection_hints": ["Front panel", "Main face", "PDP"],
+    "scoring": { "critical": 15, "major": 8, "minor": 3 }
+  }
+]
