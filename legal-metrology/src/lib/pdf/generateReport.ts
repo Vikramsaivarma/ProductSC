@@ -1,5 +1,3 @@
-'use client';
-
 import type jsPDF from 'jspdf';
 import type { StructuredDeclarations } from '@/types/domain';
 
@@ -106,7 +104,7 @@ function formatFieldValue(value: unknown): string {
   return String(value);
 }
 
-export async function generateReportPDF(data: ReportPDFData) {
+export async function buildReportPDF(data: ReportPDFData): Promise<ArrayBuffer> {
   const jsPDFModule = await import('jspdf');
   const JsPDF = jsPDFModule.default;
   const autoTableModule = await import('jspdf-autotable');
@@ -259,5 +257,29 @@ export async function generateReportPDF(data: ReportPDFData) {
 
   addFooter(doc, data.report.id);
 
-  doc.save(`compliance-report-${data.product.name.replace(/\s+/g, '-')}-${data.report.id.slice(0, 8)}.pdf`);
+  // Apply the footer to every page
+  const pageCount = (doc as unknown as { getNumberOfPages: () => number }).getNumberOfPages();
+  for (let i = 1; i <= pageCount; i++) {
+    doc.setPage(i);
+    addFooter(doc, data.report.id);
+  }
+
+  return doc.output('arraybuffer');
+}
+
+export async function generateReportPDF(data: ReportPDFData): Promise<void> {
+  const bytes = await buildReportPDF(data);
+  const blob = new Blob([bytes], { type: 'application/pdf' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `compliance-report-${data.product.name.replace(/\s+/g, '-')}-${data.report.id.slice(0, 8)}.pdf`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+export function reportFileName(productName: string, reportId: string): string {
+  return `compliance-report-${productName.replace(/\s+/g, '-')}-${reportId.slice(0, 8)}.pdf`;
 }

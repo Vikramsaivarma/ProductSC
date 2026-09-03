@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { buildReportPDF, reportFileName } from '@/lib/pdf/generateReport';
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -16,24 +17,46 @@ export async function GET(_request: Request, { params }: RouteParams) {
 
     const { id } = await params;
 
-    const { data: report, error: reportError } = await supabase
-      .from('compliance_reports')
+    const { data: product, error: productError } = await supabase
+      .from('products')
       .select('*')
       .eq('id', id)
       .single();
 
-    if (reportError || !report) {
+    if (productError || !product) {
+      return NextResponse.json({ error: 'Product not found' }, { status: 404 });
+    }
+
+    const { data: extraction } = await supabase
+      .from('extractions')
+      .select('*')
+      .eq('product_id', id)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    const { data: report } = await supabase
+      .from('compliance_reports')
+      .select('*')
+      .eq('product_id', id)
+      .order('checked_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (!report) {
       return NextResponse.json({ error: 'Report not found' }, { status: 404 });
     }
 
-    return NextResponse.json({
-      reportId: id,
-      status: report.overall_status,
-      score: report.compliance_score,
-      violations: report.violations,
-      passedChecks: report.passed_checks,
-      checkedAt: report.checked_at,
-      message: 'PDF generation not yet implemented. This is a placeholder response.',
+    const bytes = await buildReportPDF({ report, product, extraction });
+    const filename = reportFileName(product.name, report.id);
+
+    return new NextResponse(bytes, {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/pdf',
+        'Content-Disposition': `attachment; filename="${filename}"`,
+        'Cache-Control': 'private, max-age=0, no-store',
+      },
     });
   } catch (error) {
     console.error('PDF report error:', error);
