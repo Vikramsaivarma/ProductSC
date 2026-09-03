@@ -65,7 +65,7 @@ Repo root has feature branches (all with only a README so far). The app currentl
 4. Confirm dashboard/search server reads against a populated `compliance_reports` table.
 
 ### C. Hardening / polish (optional)
-- The PDF endpoint is currently a stub — implement full generation from a stored report.
+- PDF report endpoint now generates a real PDF server-side (`GET /api/reports/pdf/:id`, by product id) and the client can also download directly. Verify against a live report.
 - The 6th spec test set is done; can expand with per-rule unit tests.
 - Consider OCR of `8_1732871406 (1).pdf` (83 scanned pages) to cross-check the rule text; Gemini can read scanned pages directly so OCR may be unnecessary.
 
