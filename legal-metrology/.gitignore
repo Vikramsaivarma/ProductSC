@@ -34,3 +34,11 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# dataset + cached responses (never commit)
+/data/
+/scripts/fixtures/*.json
+
+# local dataset processor state
+*.processed.json
+failures.jsonl

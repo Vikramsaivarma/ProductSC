@@ -1,7 +1,15 @@
 import { NextResponse } from 'next/server';
+import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
 import { runAnalysisPipeline } from '@/lib/gemini/pipeline';
 import { validateExtraction } from '@/lib/rules/validator';
+import { checkRateLimit } from '@/lib/rate-limit';
+import { RateLimitError } from '@/lib/errors';
+
+const AnalyzeBodySchema = z.object({
+  productId: z.string().uuid(),
+  imageUrls: z.array(z.string().url()).min(1).max(6),
+});
 
 export async function POST(request: Request) {
   try {
@@ -12,15 +20,16 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const body = await request.json();
-    const { productId, imageUrls } = body as { productId: string; imageUrls: string[] };
+    await checkRateLimit(user.id, '/api/analyze', 10, 3600);
 
-    if (!productId || !Array.isArray(imageUrls) || imageUrls.length === 0) {
-      return NextResponse.json(
-        { error: 'productId and non-empty imageUrls array are required' },
-        { status: 400 },
-      );
+    const body = await request.json();
+    const parsed = AnalyzeBodySchema.safeParse(body);
+
+    if (!parsed.success) {
+      return NextResponse.json({ error: 'validation_failed', details: parsed.error.flatten() }, { status: 422 });
     }
+
+    const { productId, imageUrls } = parsed.data;
 
     const { data: product, error: productError } = await supabase
       .from('products')
@@ -97,6 +106,12 @@ export async function POST(request: Request) {
       status: extractionResult.overall_status,
     });
   } catch (error) {
+    if (error instanceof RateLimitError) {
+      return NextResponse.json(
+        { error: 'rate_limited', retryAfter: error.retryAfter },
+        { status: 429 },
+      );
+    }
     console.error('Analysis error:', error);
     const message = error instanceof Error ? error.message : 'Internal server error';
     return NextResponse.json({ error: message }, { status: 500 });

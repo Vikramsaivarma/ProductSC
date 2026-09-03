@@ -1,0 +1,48 @@
+-- Legal Metrology Compliance Checker — Seed data
+-- Inserts the 12 LM rule reference rows into the `rules` table.
+-- Run after 001_initial_schema.sql, in the Supabase SQL Editor.
+
+INSERT INTO public.rules (rule_code, title, description, legal_reference, category, severity) VALUES
+  ('LM-01', 'Manufacturer Details',
+   'Name and complete address of the manufacturer, or packer, or importer shall be declared.',
+   'Rule 6(1)(a) PCI Rules, 2011', 'packaging', 'critical'),
+  ('LM-02', 'Common / Generic Name',
+   'Common or generic name describing the nature of the commodity shall be declared.',
+   'Rule 6(1)(b) PCI Rules, 2011', 'packaging', 'major'),
+  ('LM-03', 'Net Quantity Declaration',
+   'Net quantity declared in standard SI units (g/kg/ml/L/cm/m/piece).',
+   'Rule 8 PCI Rules, 2011', 'declaration', 'critical'),
+  ('LM-04', 'MRP Declaration',
+   'Maximum Retail Price in rupees including the words "inclusive of all taxes".',
+   'Rule 6(1)(e) PCI Rules, 2011', 'declaration', 'critical'),
+  ('LM-05', 'Month & Year of Manufacture/Pack/Import',
+   'Month and year of manufacture or packing or import shall be declared.',
+   'Rule 6(1)(c) PCI Rules, 2011', 'declaration', 'critical'),
+  ('LM-06', 'Consumer Care Details',
+   'Name and address of the person to whom complaints may be sent, including phone number or email.',
+   'Rule 6(1)(d) PCI Rules, 2011', 'packaging', 'major'),
+  ('LM-07', 'Country of Origin (Imported)',
+   'Country of origin must be declared for imported packaged goods.',
+   'Rule 6(10) PCI Rules, 2011', 'import', 'critical'),
+  ('LM-08', 'Font Size — Net Quantity',
+   'Minimum font/numeral height per package tier: <=200 g/ml = 1mm, 200-500 = 2mm, >500 = 4mm.',
+   'Rule 9 PCI Rules, 2011', 'typography', 'major'),
+  ('LM-09', 'MRP Tampering Detection',
+   'MRP shall not be overprinted, overwritten, or covered by a sticker; must be permanent.',
+   'Rule 6(3) PCI Rules, 2011', 'integrity', 'critical'),
+  ('LM-10', 'Unit Sale Price (Food >100g)',
+   'For food commodities with net quantity > 100 g/ml, unit sale price per unit weight/volume shall be declared.',
+   'Rule 6 PCI Rules, 2011', 'declaration', 'major'),
+  ('LM-11', 'No Misleading Terms',
+   'No misleading terms or claims that deceive the consumer about quantity, quality, or nature of product.',
+   'Rule 6 PCI Rules, 2011', 'integrity', 'minor'),
+  ('LM-12', 'Declarations on Principal Display Panel',
+   'Mandatory declarations must appear on the Principal Display Panel (PDP).',
+   'Rule 5 PCI Rules, 2011', 'packaging', 'minor')
+ON CONFLICT (rule_code) DO UPDATE SET
+  title = EXCLUDED.title,
+  description = EXCLUDED.description,
+  legal_reference = EXCLUDED.legal_reference,
+  category = EXCLUDED.category,
+  severity = EXCLUDED.severity,
+  is_active = TRUE;
