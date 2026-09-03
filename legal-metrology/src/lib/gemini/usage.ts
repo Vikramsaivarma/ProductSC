@@ -19,7 +19,7 @@ export async function trackUsage(params: TrackUsageParams): Promise<void> {
   );
 
   const { error } = await supabase.from('audit_log').insert({
-    user_id: params.userId ?? '00000000-0000-0000-0000-000000000000',
+    ...(params.userId ? { user_id: params.userId } : {}),
     action: params.action,
     entity_type: 'gemini_api',
     entity_id: params.entityId ?? crypto.randomUUID(),

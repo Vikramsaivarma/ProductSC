@@ -65,7 +65,7 @@ export async function POST(request: Request) {
         structured_data: pipelineResult.structured,
         font_analysis: pipelineResult.fontAnalysis,
         ai_suggestions: pipelineResult.suggestions,
-        model_used: 'gemini-2.0-flash-exp',
+        model_used: 'gemini-3.6-flash',
         confidence: pipelineResult.structured?.confidence ?? 0,
         tokens_used: pipelineResult.tokensUsed,
       })

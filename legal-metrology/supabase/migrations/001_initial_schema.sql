@@ -35,7 +35,7 @@ CREATE TABLE extractions (
   structured_data JSONB NOT NULL,
   font_analysis JSONB,
   ai_suggestions JSONB DEFAULT '{}',
-  model_used TEXT DEFAULT 'gemini-2.0-flash-exp',
+  model_used TEXT DEFAULT 'gemini-3.6-flash',
   confidence FLOAT,
   tokens_used INT DEFAULT 0,
   created_at TIMESTAMPTZ DEFAULT NOW()

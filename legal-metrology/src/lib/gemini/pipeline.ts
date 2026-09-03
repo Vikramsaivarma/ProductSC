@@ -24,7 +24,7 @@ interface PipelineResult {
   tokensUsed: number;
 }
 
-const MODEL_NAME = 'gemini-2.0-flash-exp';
+const MODEL_NAME = 'gemini-3.6-flash';
 const TOTAL_TIMEOUT_MS = 55_000;
 const MAX_RETRIES = 3;
 const BASE_DELAY_MS = 1_000;
