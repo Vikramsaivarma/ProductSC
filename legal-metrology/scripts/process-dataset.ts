@@ -109,10 +109,11 @@ async function uploadImages(client: SupabaseClient, dir: string): Promise<string
   for (let i = 0; i < imagePaths.length; i++) {
     const file = imagePaths[i];
     const data = await readFile(file);
+    const contentType = mimeFor(path.basename(file));
     const { data: uploaded, error } = await client.storage
       .from('product-images')
       .upload(`dataset/${Date.now()}-${i}-${path.basename(file)}`, data, {
-        contentType: undefined,
+        contentType,
         upsert: true,
       });
     if (error) {
@@ -123,6 +124,20 @@ async function uploadImages(client: SupabaseClient, dir: string): Promise<string
     urls.push(publicUrl.publicUrl);
   }
   return urls;
+}
+
+function mimeFor(filename: string): string {
+  const ext = path.extname(filename).toLowerCase();
+  return (
+    {
+      '.png': 'image/png',
+      '.jpg': 'image/jpeg',
+      '.jpeg': 'image/jpeg',
+      '.webp': 'image/webp',
+      '.gif': 'image/gif',
+      '.bmp': 'image/bmp',
+    }[ext] ?? 'application/octet-stream'
+  );
 }
 
 async function productExists(client: SupabaseClient, name: string, brand: string | null): Promise<boolean> {
