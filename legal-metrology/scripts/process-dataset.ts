@@ -15,8 +15,10 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { readdir, readFile, writeFile, access } from 'node:fs/promises';
 import path from 'node:path';
-import { runAnalysisPipeline } from '../src/lib/gemini/pipeline';
+import type { runAnalysisPipeline as RunAnalysisPipeline } from '../src/lib/gemini/pipeline';
 import { validateExtraction } from '../src/lib/rules/validator';
+
+type PipelineFn = typeof RunAnalysisPipeline;
 
 // Minimal .env.local loader (Next.js loads it automatically; tsx scripts do not).
 async function loadEnvLocal(): Promise<void> {
@@ -133,7 +135,7 @@ async function productExists(client: SupabaseClient, name: string, brand: string
 async function processProduct(
   client: SupabaseClient,
   dir: string,
-  opts: { dry: boolean; brandHint?: string | null }
+  opts: { dry: boolean; brandHint?: string | null; pipeline?: PipelineFn }
 ): Promise<string | null> {
   const base = path.basename(dir);
   const meta = await readJson<ProductMetadata>(path.join(dir, 'metadata.json'), {});
@@ -179,7 +181,10 @@ async function processProduct(
     throw new Error(`insert product failed: ${productError?.message ?? 'no row'}`);
   }
 
-  const pipelineResult = await runAnalysisPipeline({
+  if (!opts.pipeline) {
+    throw new Error('pipeline not loaded');
+  }
+  const pipelineResult = await opts.pipeline({
     imageUrls,
     packageWeightBucket: bucket,
   });
@@ -248,6 +253,10 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 
+  // Dynamic import so env vars (.env.local) are loaded before the Gemini
+  // client module evaluates (it reads GEMINI_API_KEY at import time).
+  const { runAnalysisPipeline } = await import('../src/lib/gemini/pipeline');
+
   const client = createSupabase();
   const state = await readJson<ProcessedState>(path.join(dataDir, STATE_FILE), { ids: [] });
   const failed: string[] = [];
@@ -283,7 +292,7 @@ async function main(): Promise<void> {
       continue;
     }
     try {
-      const id = await processProduct(client, job.dir, { dry, brandHint: job.brandHint });
+      const id = await processProduct(client, job.dir, { dry, brandHint: job.brandHint, pipeline: runAnalysisPipeline });
       if (id) {
         state.ids.push(job.dir);
         await writeFile(path.join(dataDir, STATE_FILE), JSON.stringify(state, null, 2));
