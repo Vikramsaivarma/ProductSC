@@ -1,0 +1,3 @@
+﻿.env.local
+*.pem
+.env*.local
