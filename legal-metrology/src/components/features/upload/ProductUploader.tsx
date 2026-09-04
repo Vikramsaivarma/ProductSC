@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useDropzone } from 'react-dropzone';
 import { useForm } from 'react-hook-form';
@@ -66,12 +66,27 @@ const WEIGHT_LABELS: Record<string, string> = {
 
 export default function ProductUploader() {
   const router = useRouter();
-  const supabase = createClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [userId, setUserId] = useState<string | null>(null);
 
   const [files, setFiles] = useState<File[]>([]);
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
+
+  useEffect(() => {
+    async function fetchUser() {
+      try {
+        const res = await fetch('/api/auth/me');
+        if (res.ok) {
+          const data = await res.json();
+          setUserId(data.id);
+        }
+      } catch {
+        // Ignore
+      }
+    }
+    fetchUser();
+  }, []);
 
   const form = useForm<UploadFormData>({
     resolver: zodResolver(uploadSchema),
@@ -122,27 +137,25 @@ export default function ProductUploader() {
       return;
     }
 
+    if (!userId) {
+      toast.error('You must be logged in');
+      return;
+    }
+
     setUploading(true);
     setProgress(0);
 
     const loadingToast = toast.loading('Uploading images...');
 
     try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-
-      if (!user) {
-        throw new Error('You must be logged in');
-      }
-
+      const supabase = createClient();
       // Upload images to Supabase Storage
       const imageUrls: string[] = [];
       const totalSteps = files.length + 2; // uploads + insert + analyze
       let completedSteps = 0;
 
       for (const file of files) {
-        const filePath = `${user.id}/${Date.now()}-${file.name}`;
+        const filePath = `${userId}/${Date.now()}-${file.name}`;
         const { error: uploadError } = await supabase.storage
           .from('product-images')
           .upload(filePath, file, { contentType: file.type });
@@ -171,7 +184,7 @@ export default function ProductUploader() {
           category: data.category,
           package_weight_bucket: data.package_weight_bucket,
           image_urls: imageUrls,
-          uploaded_by: user.id,
+          uploaded_by: userId,
           source: 'manual_upload',
         })
         .select('id')

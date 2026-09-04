@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { ArrowRight, Loader2 } from 'lucide-react';
-import { useAuth } from '@/lib/auth/demo-auth';
+import toast from 'react-hot-toast';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 
@@ -16,16 +16,26 @@ const DEMO_ACCOUNTS = [
 ];
 
 export default function SignupPage() {
-  const { login, isLoading: authLoading } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
 
   async function quickLogin(email: string) {
     setIsLoading(true);
-    const ok = await login(email, 'demo123');
-    setIsLoading(false);
-    if (!ok) {
-      alert('Failed to login');
+    try {
+      const res = await fetch('/api/auth/demo-login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password: 'demo123' }),
+      });
+      if (res.ok) {
+        toast.success('Logged in successfully');
+        window.location.href = '/dashboard';
+      } else {
+        toast.error('Login failed');
+      }
+    } catch {
+      toast.error('Login failed');
     }
+    setIsLoading(false);
   }
 
   return (
@@ -41,7 +51,7 @@ export default function SignupPage() {
             className="w-full justify-start text-left p-4 h-auto gap-4"
             variant="outline"
             onClick={() => quickLogin(acc.email)}
-            disabled={isLoading || authLoading}
+            disabled={isLoading}
           >
             <div className="flex-1">
               <div className="font-medium">{acc.role}</div>

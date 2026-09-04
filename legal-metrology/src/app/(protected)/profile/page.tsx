@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { User, Mail, Shield, Loader2, LogOut } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 
@@ -16,35 +15,40 @@ interface UserProfile {
 
 export default function ProfilePage() {
   const router = useRouter();
-  const supabase = createClient();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     async function fetchProfile() {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
+      try {
+        const res = await fetch('/api/auth/me');
+        if (!res.ok) {
+          router.replace('/login');
+          return;
+        }
+        const data = await res.json();
+        setProfile({
+          email: data.email,
+          full_name: data.full_name,
+          role: data.role,
+        });
+      } catch {
         router.replace('/login');
-        return;
       }
-      setProfile({
-        email: user.email ?? '',
-        full_name: user.user_metadata?.full_name ?? '',
-        role: user.user_metadata?.role ?? 'viewer',
-      });
       setIsLoading(false);
     }
     fetchProfile();
-  }, [router, supabase]);
+  }, [router]);
 
   async function handleSignOut() {
-    const { error } = await supabase.auth.signOut();
-    if (error) {
-      toast.error(error.message);
-      return;
+    try {
+      await fetch('/api/auth/demo-logout', { method: 'POST' });
+      toast.success('Signed out');
+      router.push('/login');
+      router.refresh();
+    } catch {
+      toast.error('Sign out failed');
     }
-    toast.success('Signed out');
-    router.push('/login');
   }
 
   if (isLoading) {

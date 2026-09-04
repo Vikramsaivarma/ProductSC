@@ -1,25 +1,11 @@
-import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import ProductUploader from '@/components/features/upload/ProductUploader';
+import { requireAuth } from '@/lib/auth/server';
 
 export default async function UploadPage() {
-  const supabase = await createClient();
+  const user = await requireAuth();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    redirect('/login');
-  }
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('role')
-    .eq('id', user.id)
-    .single();
-
-  if (profile?.role === 'viewer') {
+  if (user.role === 'viewer') {
     redirect('/dashboard');
   }
 

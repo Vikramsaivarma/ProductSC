@@ -55,6 +55,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (demoUser && password === DEMO_PASSWORD) {
       setUser(demoUser);
       localStorage.setItem("demo_user", JSON.stringify(demoUser));
+      // Also set cookie via API call
+      await fetch('/api/auth/demo-login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
       setIsLoading(false);
       router.push("/dashboard");
       router.refresh();
@@ -65,9 +71,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return false;
   };
 
-  const logout = () => {
+  const logout = async () => {
     setUser(null);
     localStorage.removeItem("demo_user");
+    await fetch('/api/auth/demo-logout', { method: 'POST' });
     router.push("/login");
     router.refresh();
   };

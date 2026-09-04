@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Mail, Lock, ArrowRight, Loader2, Users } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { useAuth } from '@/lib/auth/demo-auth';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -24,7 +24,7 @@ const DEMO_ACCOUNTS = [
 ];
 
 export default function LoginPage() {
-  const { login, isLoading: authLoading } = useAuth();
+  const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
 
   const form = useForm<LoginValues>({
@@ -33,11 +33,23 @@ export default function LoginPage() {
 
   async function handleLogin(data: LoginValues) {
     setIsLoading(true);
-    const ok = await login(data.email, data.password);
-    setIsLoading(false);
-    if (!ok) {
-      toast.error('Invalid credentials. Use demo accounts below.');
+    try {
+      const res = await fetch('/api/auth/demo-login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      if (res.ok) {
+        toast.success('Signed in successfully');
+        router.push('/dashboard');
+        router.refresh();
+      } else {
+        toast.error('Invalid credentials. Use demo accounts below.');
+      }
+    } catch {
+      toast.error('Login failed');
     }
+    setIsLoading(false);
   }
 
   return (
@@ -82,8 +94,8 @@ export default function LoginPage() {
             )}
           </div>
 
-          <Button type="submit" className="w-full" disabled={isLoading || authLoading}>
-            {isLoading || authLoading ? (
+          <Button type="submit" className="w-full" disabled={isLoading}>
+            {isLoading ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             ) : (
               <>

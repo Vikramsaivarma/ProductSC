@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { LogOut, User } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { createClient } from '@/lib/supabase/client';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import {
   DropdownMenu,
@@ -15,41 +14,52 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
+interface DemoUser {
+  email: string;
+  full_name: string;
+  role: string;
+}
+
 export default function UserNav() {
   const router = useRouter();
-  const supabase = createClient();
-  const [email, setEmail] = useState('');
+  const [user, setUser] = useState<DemoUser | null>(null);
   const [initials, setInitials] = useState('?');
 
   useEffect(() => {
     async function fetchUser() {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        setEmail(user.email ?? '');
-        const name = user.user_metadata?.full_name as string | undefined;
-        if (name) {
-          const parts = name.trim().split(/\s+/);
-          setInitials(
-            parts.length >= 2
-              ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
-              : name.slice(0, 2).toUpperCase()
-          );
-        } else {
-          setInitials(user.email?.slice(0, 2).toUpperCase() ?? '?');
+      try {
+        const res = await fetch('/api/auth/me');
+        if (res.ok) {
+          const data = await res.json();
+          setUser(data);
+          const name = data.full_name;
+          if (name) {
+            const parts = name.trim().split(/\s+/);
+            setInitials(
+              parts.length >= 2
+                ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+                : name.slice(0, 2).toUpperCase()
+            );
+          } else {
+            setInitials(data.email?.slice(0, 2).toUpperCase() ?? '?');
+          }
         }
+      } catch {
+        // Ignore
       }
     }
     fetchUser();
-  }, [supabase]);
+  }, []);
 
   async function handleSignOut() {
-    const { error } = await supabase.auth.signOut();
-    if (error) {
-      toast.error(error.message);
-      return;
+    try {
+      await fetch('/api/auth/demo-logout', { method: 'POST' });
+      toast.success('Signed out');
+      router.push('/login');
+      router.refresh();
+    } catch {
+      toast.error('Sign out failed');
     }
-    toast.success('Signed out');
-    router.push('/login');
   }
 
   return (
@@ -67,7 +77,7 @@ export default function UserNav() {
         <DropdownMenuLabel className="font-normal">
           <div className="flex flex-col space-y-1">
             <p className="text-sm font-medium leading-none">Account</p>
-            <p className="text-xs leading-none text-muted-foreground">{email}</p>
+            <p className="text-xs leading-none text-muted-foreground">{user?.email}</p>
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />

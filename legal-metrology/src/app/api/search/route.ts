@@ -1,14 +1,16 @@
 import { NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { getDemoUserFromCookie } from '@/lib/auth/middleware';
 
 export async function GET(request: Request) {
   try {
-    const supabase = await createClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-
-    if (authError || !user) {
+    const user = getDemoUserFromCookie(request as NextRequest);
+    if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    const supabase = await createClient();
 
     const { searchParams } = new URL(request.url);
     const q = searchParams.get('q') ?? '';

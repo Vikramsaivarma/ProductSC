@@ -1,10 +1,12 @@
 import { NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
 import { runAnalysisPipeline } from '@/lib/gemini/pipeline';
 import { validateExtraction } from '@/lib/rules/validator';
 import { checkRateLimit } from '@/lib/rate-limit';
 import { RateLimitError } from '@/lib/errors';
+import { getDemoUserFromCookie } from '@/lib/auth/middleware';
 
 const AnalyzeBodySchema = z.object({
   productId: z.string().uuid(),
@@ -15,12 +17,12 @@ export const maxDuration = 60;
 
 export async function POST(request: Request) {
   try {
-    const supabase = await createClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-
-    if (authError || !user) {
+    const user = getDemoUserFromCookie(request as NextRequest);
+    if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    const supabase = await createClient();
 
     await checkRateLimit(user.id, '/api/analyze', 10, 3600);
 

@@ -1,19 +1,12 @@
-import { createClient } from '@/lib/supabase/server';
-import { redirect } from 'next/navigation';
 import { StatCards } from '@/components/features/dashboard/StatCards';
 import { DashboardCharts } from '@/components/features/dashboard/DashboardCharts';
 import { RecentScansTable } from '@/components/features/dashboard/RecentScansTable';
+import { createClient } from '@/lib/supabase/server';
+import { requireAuth } from '@/lib/auth/server';
 
 export default async function DashboardPage() {
+  await requireAuth();
   const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    redirect('/login');
-  }
 
   const { data: reports } = await supabase
     .from('compliance_reports')
