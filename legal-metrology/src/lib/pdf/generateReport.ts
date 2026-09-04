@@ -255,9 +255,7 @@ export async function buildReportPDF(data: ReportPDFData): Promise<ArrayBuffer> 
     });
   }
 
-  addFooter(doc, data.report.id);
-
-  // Apply the footer to every page
+  // Apply footer to every page
   const pageCount = (doc as unknown as { getNumberOfPages: () => number }).getNumberOfPages();
   for (let i = 1; i <= pageCount; i++) {
     doc.setPage(i);

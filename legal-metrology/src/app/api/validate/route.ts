@@ -54,7 +54,7 @@ export async function POST(request: Request) {
       .select('id')
       .single();
 
-    if (reportError) {
+    if (reportError || !report) {
       console.error('Failed to update compliance report:', reportError);
       return NextResponse.json({ error: 'Failed to update compliance report' }, { status: 500 });
     }

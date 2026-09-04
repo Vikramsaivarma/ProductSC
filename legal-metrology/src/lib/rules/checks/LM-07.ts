@@ -3,38 +3,47 @@ import { CheckInput, CheckResult } from '../types';
 export default function check(input: CheckInput): CheckResult {
   const d = input.structured_data;
   const coo = d?.country_of_origin;
-  const imported = d?.is_imported === true;
+  const isImported = d?.is_imported === true;
 
-  if (!imported) {
+  if (isImported && (coo === null || coo === undefined || String(coo).trim().length === 0)) {
+    return {
+      passed: false,
+      rule_code: 'LM-07',
+      field: 'country_of_origin',
+      actual: null,
+      expected: 'Country of origin required for imported product (Rule 6(10))',
+      suggestion: 'Declare the country of origin for this imported product as required under Rule 6(10) of the Legal Metrology (Packaged Commodities) Rules, 2011.',
+    };
+  }
+
+  if (!isImported && (coo === null || coo === undefined)) {
     return {
       passed: true,
       rule_code: 'LM-07',
       field: 'country_of_origin',
-      actual: 'Not imported — rule not applicable',
-      expected: 'country_of_origin required only for imported products',
+      actual: 'Not declared — assumed domestic',
+      expected: 'Country of origin required for imported products (Rule 6(10))',
       suggestion: '',
     };
   }
 
-  const present = !!coo && String(coo).trim().length > 0;
-
-  if (present) {
+  if (String(coo).trim().length === 0) {
     return {
-      passed: true,
+      passed: false,
       rule_code: 'LM-07',
       field: 'country_of_origin',
-      actual: String(coo),
-      expected: 'Non-empty country_of_origin for imported product',
-      suggestion: '',
+      actual: 'Empty',
+      expected: 'Country of origin declaration required (Rule 6(10))',
+      suggestion: 'Declare the country of origin on the package.',
     };
   }
 
   return {
-    passed: false,
+    passed: true,
     rule_code: 'LM-07',
     field: 'country_of_origin',
-    actual: null,
-    expected: 'Country of origin for imported product',
-    suggestion: 'Declare the country of origin for this imported product as required under Rule 5(1) of the Packaged Commodities Rules, 2011.',
+    actual: String(coo),
+    expected: 'Country of origin declared',
+    suggestion: '',
   };
 }

@@ -1,10 +1,9 @@
 import { CheckInput, CheckResult } from '../types';
 
 const MIN_HEIGHTS: Record<string, number> = {
-  micro: 1.0,
-  small: 1.5,
-  medium: 2.0,
-  large: 2.5,
+  '<=200': 1.0,
+  '200-500': 2.0,
+  '>500': 4.0,
 };
 
 export default function check(input: CheckInput): CheckResult {
@@ -38,8 +37,8 @@ export default function check(input: CheckInput): CheckResult {
     ? netQtyMeasurement.estimated_height_mm
     : parseFloat(String(netQtyMeasurement.estimated_height_mm));
 
-  const tier = input.package_weight_bucket?.toLowerCase() || 'small';
-  const minHeight = MIN_HEIGHTS[tier] || MIN_HEIGHTS.medium;
+  const tier = input.package_weight_bucket || '<=200';
+  const minHeight = MIN_HEIGHTS[tier] ?? 1.0;
 
   if (isNaN(height)) {
     return {

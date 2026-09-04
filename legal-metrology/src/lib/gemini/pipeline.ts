@@ -1,5 +1,3 @@
-'use server';
-
 import type { Part, GenerateContentRequest } from '@google/generative-ai';
 import { getGeminiModel } from './client';
 import { EXTRACTION_PROMPT, FONT_ANALYSIS_PROMPT, SUGGESTIONS_PROMPT } from './prompts';
