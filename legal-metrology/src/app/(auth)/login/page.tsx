@@ -1,90 +1,43 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 import { useForm } from 'react-hook-form';
-import { Mail, Lock, ArrowRight, Loader2 } from 'lucide-react';
+import { Mail, Lock, ArrowRight, Loader2, Users } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { createClient } from '@/lib/supabase/client';
+import { useAuth } from '@/lib/auth/demo-auth';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
-type EmailPasswordValues = {
+export const dynamic = 'force-dynamic';
+
+type LoginValues = {
   email: string;
   password: string;
 };
 
-type MagicLinkValues = {
-  email: string;
-};
+const DEMO_ACCOUNTS = [
+  { email: 'admin@demo.com', role: 'Admin', desc: 'Full access' },
+  { email: 'officer@demo.com', role: 'Officer', desc: 'Upload & scan' },
+  { email: 'viewer@demo.com', role: 'Viewer', desc: 'Read-only' },
+];
 
 export default function LoginPage() {
-  const router = useRouter();
-  const supabase = createClient();
+  const { login, isLoading: authLoading } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
 
-  const emailPasswordForm = useForm<EmailPasswordValues>({
-    defaultValues: { email: '', password: '' },
+  const form = useForm<LoginValues>({
+    defaultValues: { email: 'admin@demo.com', password: 'demo123' },
   });
 
-  const magicLinkForm = useForm<MagicLinkValues>({
-    defaultValues: { email: '' },
-  });
-
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  async function handleEmailPassword(data: EmailPasswordValues) {
-    if (isSubmitting) return;
-    setIsSubmitting(true);
+  async function handleLogin(data: LoginValues) {
     setIsLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({
-      email: data.email,
-      password: data.password,
-    });
+    const ok = await login(data.email, data.password);
     setIsLoading(false);
-    setIsSubmitting(false);
-
-    if (error) {
-      if (error.message.includes('429') || error.message.includes('rate limit') || error.message.includes('Too Many Requests')) {
-        toast.error('Too many login attempts. Please wait a moment before trying again.');
-      } else {
-        toast.error(error.message);
-      }
-      return;
+    if (!ok) {
+      toast.error('Invalid credentials. Use demo accounts below.');
     }
-
-    toast.success('Signed in successfully');
-    router.push('/dashboard');
-    router.refresh();
-  }
-
-  async function handleMagicLink(data: MagicLinkValues) {
-    if (isSubmitting) return;
-    setIsSubmitting(true);
-    setIsLoading(true);
-    const { error } = await supabase.auth.signInWithOtp({
-      email: data.email,
-      options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
-      },
-    });
-    setIsLoading(false);
-    setIsSubmitting(false);
-
-    if (error) {
-      if (error.message.includes('429') || error.message.includes('rate limit') || error.message.includes('Too Many Requests')) {
-        toast.error('Too many requests. Please wait a moment before trying again.');
-      } else {
-        toast.error(error.message);
-      }
-      return;
-    }
-
-    toast.success('Check your email for the login link');
   }
 
   return (
@@ -94,121 +47,71 @@ export default function LoginPage() {
         <CardDescription>Sign in to your account</CardDescription>
       </CardHeader>
       <CardContent>
-        <Tabs defaultValue="password" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="password">Email & Password</TabsTrigger>
-            <TabsTrigger value="magic-link">Magic Link</TabsTrigger>
-          </TabsList>
+        <form onSubmit={form.handleSubmit(handleLogin)} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="login-email">Email</Label>
+            <div className="relative">
+              <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+              <Input
+                id="login-email"
+                type="email"
+                placeholder="you@example.com"
+                className="pl-10"
+                {...form.register('email', { required: 'Email is required' })}
+              />
+            </div>
+            {form.formState.errors.email && (
+              <p className="text-sm text-destructive">{form.formState.errors.email.message}</p>
+            )}
+          </div>
 
-          <TabsContent value="password">
-            <form
-              onSubmit={emailPasswordForm.handleSubmit(handleEmailPassword)}
-              className="mt-4 space-y-4"
-            >
-              <div className="space-y-2">
-                <Label htmlFor="login-email">Email</Label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="login-email"
-                    type="email"
-                    placeholder="you@example.com"
-                    className="pl-10"
-                    {...emailPasswordForm.register('email', {
-                      required: 'Email is required',
-                    })}
-                  />
-                </div>
-                {emailPasswordForm.formState.errors.email && (
-                  <p className="text-sm text-destructive">
-                    {emailPasswordForm.formState.errors.email.message}
-                  </p>
-                )}
-              </div>
+          <div className="space-y-2">
+            <Label htmlFor="login-password">Password</Label>
+            <div className="relative">
+              <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+              <Input
+                id="login-password"
+                type="password"
+                placeholder="••••••••"
+                className="pl-10"
+                {...form.register('password', { required: 'Password is required' })}
+              />
+            </div>
+            {form.formState.errors.password && (
+              <p className="text-sm text-destructive">{form.formState.errors.password.message}</p>
+            )}
+          </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="login-password">Password</Label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="login-password"
-                    type="password"
-                    placeholder="••••••••"
-                    className="pl-10"
-                    {...emailPasswordForm.register('password', {
-                      required: 'Password is required',
-                    })}
-                  />
-                </div>
-                {emailPasswordForm.formState.errors.password && (
-                  <p className="text-sm text-destructive">
-                    {emailPasswordForm.formState.errors.password.message}
-                  </p>
-                )}
-              </div>
+          <Button type="submit" className="w-full" disabled={isLoading || authLoading}>
+            {isLoading || authLoading ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <>
+                Sign In
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </>
+            )}
+          </Button>
+        </form>
 
-              <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                  <>
-                    Sign In
-                    <ArrowRight className="ml-2 h-4 w-4" />
-                  </>
-                )}
-              </Button>
-            </form>
-          </TabsContent>
-
-          <TabsContent value="magic-link">
-            <form
-              onSubmit={magicLinkForm.handleSubmit(handleMagicLink)}
-              className="mt-4 space-y-4"
-            >
-              <div className="space-y-2">
-                <Label htmlFor="magic-email">Email</Label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="magic-email"
-                    type="email"
-                    placeholder="you@example.com"
-                    className="pl-10"
-                    {...magicLinkForm.register('email', {
-                      required: 'Email is required',
-                    })}
-                  />
-                </div>
-                {magicLinkForm.formState.errors.email && (
-                  <p className="text-sm text-destructive">
-                    {magicLinkForm.formState.errors.email.message}
-                  </p>
-                )}
-              </div>
-
-              <p className="text-sm text-muted-foreground">
-                We&apos;ll send you a magic link to sign in without a password.
-              </p>
-
-              <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                  <>
-                    Send Magic Link
-                    <ArrowRight className="ml-2 h-4 w-4" />
-                  </>
-                )}
-              </Button>
-            </form>
-          </TabsContent>
-        </Tabs>
-
-        <div className="mt-6 text-center text-sm text-muted-foreground">
-          Don&apos;t have an account?{' '}
-          <Link href="/signup" className="font-medium text-primary hover:underline">
-            Sign up
-          </Link>
+        <div className="mt-6 p-4 rounded-lg bg-muted/50">
+          <div className="mb-3 flex items-center gap-2 text-sm font-medium text-foreground">
+            <Users className="h-4 w-4" />
+            Demo Accounts (password: <code className="px-1.5 py-0.5 rounded bg-muted">demo123</code>)
+          </div>
+          <ul className="space-y-2 text-sm">
+            {DEMO_ACCOUNTS.map((acc) => (
+              <li key={acc.email} className="flex items-center gap-2 p-2 rounded hover:bg-muted/50 cursor-pointer"
+                onClick={() => {
+                  form.setValue('email', acc.email);
+                  form.setValue('password', 'demo123');
+                }}>
+                <span className="font-mono text-xs bg-muted px-2 py-0.5 rounded w-40">{acc.email}</span>
+                <span className="font-medium">{acc.role}</span>
+                <span className="text-muted-foreground">- {acc.desc}</span>
+              </li>
+            ))}
+          </ul>
         </div>
       </CardContent>
     </Card>

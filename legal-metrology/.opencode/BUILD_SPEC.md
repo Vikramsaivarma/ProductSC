@@ -1,6 +1,6 @@
 # BUILD SPEC — Legal Metrology Compliance Checker
 
-SIH 2024 · Problem Statement 26034 · Ministry of Consumer Affairs
+2026 For SIH 2024 · Ministry of Consumer Affairs
 
 > This is the single source of truth. Status markers: **[DONE]** = implemented, builds & tests green. **[PENDING]** = not yet implemented.
 
