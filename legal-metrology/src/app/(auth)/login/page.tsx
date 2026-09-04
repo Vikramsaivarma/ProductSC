@@ -35,16 +35,25 @@ export default function LoginPage() {
     defaultValues: { email: '' },
   });
 
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   async function handleEmailPassword(data: EmailPasswordValues) {
+    if (isSubmitting) return;
+    setIsSubmitting(true);
     setIsLoading(true);
     const { error } = await supabase.auth.signInWithPassword({
       email: data.email,
       password: data.password,
     });
     setIsLoading(false);
+    setIsSubmitting(false);
 
     if (error) {
-      toast.error(error.message);
+      if (error.message.includes('429') || error.message.includes('rate limit') || error.message.includes('Too Many Requests')) {
+        toast.error('Too many login attempts. Please wait a moment before trying again.');
+      } else {
+        toast.error(error.message);
+      }
       return;
     }
 
@@ -54,6 +63,8 @@ export default function LoginPage() {
   }
 
   async function handleMagicLink(data: MagicLinkValues) {
+    if (isSubmitting) return;
+    setIsSubmitting(true);
     setIsLoading(true);
     const { error } = await supabase.auth.signInWithOtp({
       email: data.email,
@@ -62,9 +73,14 @@ export default function LoginPage() {
       },
     });
     setIsLoading(false);
+    setIsSubmitting(false);
 
     if (error) {
-      toast.error(error.message);
+      if (error.message.includes('429') || error.message.includes('rate limit') || error.message.includes('Too Many Requests')) {
+        toast.error('Too many requests. Please wait a moment before trying again.');
+      } else {
+        toast.error(error.message);
+      }
       return;
     }
 

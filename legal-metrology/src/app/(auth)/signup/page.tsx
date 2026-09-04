@@ -38,7 +38,11 @@ export default function SignupPage() {
     },
   });
 
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   async function handleSignup(data: SignupValues) {
+    if (isSubmitting) return;
+    setIsSubmitting(true);
     setIsLoading(true);
 
     const matchedCode = INVITE_CODES.find(
@@ -58,9 +62,14 @@ export default function SignupPage() {
       },
     });
     setIsLoading(false);
+    setIsSubmitting(false);
 
     if (error) {
-      toast.error(error.message);
+      if (error.message.includes('429') || error.message.includes('rate limit') || error.message.includes('Too Many Requests')) {
+        toast.error('Too many signup attempts. Please wait a moment before trying again.');
+      } else {
+        toast.error(error.message);
+      }
       return;
     }
 
